@@ -1,12 +1,29 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
 
 function Admin() {
   const [salas, setSalas] = useState([]);
-
   const [nome, setNome] = useState('');
   const [capacidade, setCapacidade] = useState('');
   const [recursos, setRecursos] = useState('');
+
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const usuarioSalvo = localStorage.getItem('usuario');
+    if (!usuarioSalvo) {
+      navigate('/login');
+    } else {
+      const usuario = JSON.parse(usuarioSalvo);
+      if (usuario.tipo !== 'admin') {
+        alert("Acesso negado. Apenas administradores.");
+        navigate('/login');
+      } else {
+        carregarSalas();
+      }
+    }
+  }, []);
 
   const carregarSalas = async () => {
     try {
@@ -19,14 +36,10 @@ function Admin() {
 
   const handleCadastrar = async (e) => {
     e.preventDefault();
-
     try {
       await axios.post('http://localhost:5000/api/salas', {
-        nome: nome,
-        capacidade: capacidade,
-        recursos: recursos
+        nome, capacidade, recursos
       });
-
       alert('Sala cadastrada com sucesso!');
 
       setNome('');
@@ -40,52 +53,42 @@ function Admin() {
   };
 
   const handleExcluir = async (id) => {
-    if (!window.confirm("Tem certeza que deseja excluir esta sala?")) {
-      return;
-    }
-
+    if (!window.confirm("Tem certeza que deseja excluir esta sala?")) return;
     try {
       await axios.delete(`http://localhost:5000/api/salas/${id}`);
       setSalas(salas.filter(sala => sala.id !== id));
-      alert("Sala excluída com sucesso!");
+      alert("Sala excluída com sucesso.");
     } catch (erro) {
-      alert('Erro ao excluir: ' + (erro.response?.data?.message || erro.message));
+      alert('Erro ao excluir: ' + (erro.responde?.data?.message || erro.message));
     }
   };
 
-  useEffect(() => {
-    carregarSalas();
-  }, []);
+  const handleLogout = () => {
+    localStorage.removeItem('usuario');
+    navigate('/login');
+  };
 
   return (
-    <div>
-      <h1>Painel do Administrador - Gerenciar Salas</h1>
+    <div style={{ padding: '20px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <h1>Painel do Administrador</h1>
+        <button onClick={handleLogout} style={{ backgroundColor: '#666', color: 'white' }}>Sair</button>
+      </div>
 
-      <div style={{ border: '1px solid #ccc', padding: '10px', marginBottom: '20px'}}>
+      <div style={{ border: '1px solid #ccc', padding: '15px', margin: '20px 0', backgroundColor: '#f9f9f9'}}>
         <h3>Cadastrar Nova Sala</h3>
         <form onSubmit={handleCadastrar}>
-          <input
-            type="text" placeholder="Nome da Sala"
-            value={nome} onChange={(e) => setNome(e.target.value)} required
-          />
+          <input type="text" placeholder="Nome" value={nome} onChange={(e) => setNome(e.target.value)} required />
           &nbsp;
-          <input
-            type="number" placeholder="Capacidade"
-            value={capacidade} onChange={(e) => setCapacidade(e.target.value)} required
-          />
+          <input type="number" placeholder="Capacidade" value={capacidade} onChange={(e) => setCapacidade(e.target.value)} required />
           &nbsp;
-          <input
-            type="text" placeholder="Recursos"
-            value={recursos} onChange={(e) => setRecursos(e.target.value)}
-          />
+          <input type="text" placeholder="Recursos" value={recursos} onChange={(e) => setRecursos(e.target.value)} />
           &nbsp;
-          <button type="submit" style={{ backgroundColor: 'green', color: 'white'}}>
-            Salvar Sala
-          </button>
+          <button type="submit" style={{ backgroundColor: 'green', color: 'white' }}>Salvar Sala</button>
         </form>
       </div>
 
-      <table border="1" cellPadding="10" style={{ borderCollapse: 'collapse', width: '100%'}}>
+      <table border="1" cellPadding="10" style={{ borderCollapser: 'collapse', width: '100%' }}>
         <thead>
           <tr>
             <th>ID</th>
@@ -103,14 +106,7 @@ function Admin() {
               <td>{sala.capacidade}</td>
               <td>{sala.recursos}</td>
               <td>
-                <button>Editar</button>
-                &nbsp;
-                <button
-                  onClick={() => handleExcluir(sala.id)}
-                  style={{ backgroundColor: 'red', color: 'white' }}
-                  >
-                    Excluir
-                </button>
+                <button onClick={() => handleExcluir(sala.id)} style={{ backgroundColor: 'red', color: 'white' }}>Excluir</button>
               </td>
             </tr>
           ))}
@@ -118,6 +114,7 @@ function Admin() {
       </table>
     </div>
   );
+
 }
 
 export default Admin;
